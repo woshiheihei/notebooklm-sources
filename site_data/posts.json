@@ -1,5 +1,19 @@
 [
   {
+    "slug": "openclaw-mcp-thread-dossier",
+    "title": "OpenClaw 正在变成 MCP server：这条 X 线程真正说清了什么",
+    "source": "output/x-dossier-openclaw-mcp/openclaw-mcp-thread.html",
+    "updated_at": "2026-03-30 07:53 CST",
+    "url": "./posts/openclaw-mcp-thread-dossier/index.html",
+    "excerpt": "OpenClaw 正在变成 MCP server：这条 X 线程真正说清了什么 :root{ bg: f5f7fa; paper: fbfcfe; ink: 1f2937; muted: 5f6b7a; soft: 8a94a3; line: d8e0ea; accent: 3d5a80;} {box sizing:border box} html,body…",
+    "kind": "html",
+    "archived_files": [
+      "openclaw-mcp-thread.html",
+      "delivery.md",
+      "openclaw-mcp-thread.png"
+    ]
+  },
+  {
     "slug": "karpathy-llm-memory-dossier-zh-cn",
     "title": "Karpathy：LLM 的个性化记忆，为什么会让人觉得被“用力过猛地理解”",
     "source": "deliverables/x-thread-memory-dossier-2026-03-29/output.html",
