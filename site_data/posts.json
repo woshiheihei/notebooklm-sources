@@ -1,5 +1,19 @@
 [
   {
+    "slug": "aakash-karpathy-prompt-loop-timeline-zh-cn-translation",
+    "title": "Aakash Gupta × Karpathy Loop / AutoResearch / Prompt Optimization —— 相关 X 时间线汇编（中文精翻）",
+    "source": "output/html/aakash-karpathy-prompt-loop-timeline-zh-CN.html",
+    "updated_at": "2026-03-29 21:39 CST",
+    "url": "./posts/aakash-karpathy-prompt-loop-timeline-zh-cn-translation/index.html",
+    "excerpt": ":root { bg: F5F7FA; text: 1D1D1F; text mid: 6E6E73; text dim: ACACB0; accent: 3D5A80; rule: E5E5EA; font: 'KingHwa OldSong', 'PingFang SC', system ui, sans serif; } { margin: 0; pa…",
+    "kind": "html",
+    "archived_files": [
+      "aakash-karpathy-prompt-loop-timeline-zh-CN.html",
+      "translation.md",
+      "aakash-karpathy-prompt-loop-timeline-zh-CN.png"
+    ]
+  },
+  {
     "slug": "output-html-x-thread-dossier-2037200624450936940",
     "title": "Karpathy × Patrick Collison × Aakash Gupta",
     "source": "output/html/x-thread-dossier-2037200624450936940.html",
@@ -7,14 +21,5 @@
     "url": "./posts/output-html-x-thread-dossier-2037200624450936940/index.html",
     "excerpt": "Karpathy × Patrick Collison × Aakash Gupta :root{ bg: f5f7fa; paper: fbfcfe; ink: 1f2937; muted: 5f6b7a; soft: 8a94a3; line: d8e0ea; accent: 3d5a80;} {box sizing:border box} html,b…",
     "kind": "html"
-  },
-  {
-    "slug": "aakash-karpathy-prompt-loop-timeline-zh-cn-translation",
-    "title": "Aakash Gupta × Karpathy Loop / AutoResearch / Prompt Optimization —— 相关 X 时间线汇编（中文精翻）",
-    "source": "translate/aakash-karpathy-prompt-loop-timeline-zh-CN/translation.md",
-    "updated_at": "2026-03-29 21:20 CST",
-    "url": "./posts/aakash-karpathy-prompt-loop-timeline-zh-cn-translation/index.html",
-    "excerpt": "Aakash Gupta × Karpathy Loop / AutoResearch / Prompt Optimization —— 相关 X 时间线汇编（中文精翻） 范围说明 这份文档汇总了我在 Aakash Gupta 时间线中能够直接核到、且与下列主题高度相关的 X 帖子： Karpathy 的 AutoResearch / Karpathy Lo…",
-    "kind": "markdown"
   }
 ]

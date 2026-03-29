@@ -21,6 +21,8 @@ IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif', '.bmp',
 MARKDOWN_EXTS = {'.md', '.markdown'}
 HTML_EXTS = {'.html', '.htm'}
 GENERIC_STEMS = {'translation', 'delivery', 'readme', 'index', 'notes', 'note'}
+SITE_NAME = 'Article Hub'
+SITE_TAGLINE = 'Public, versioned articles and visual artifacts from the local workspace.'
 
 
 def run(cmd: List[str], cwd: Path | None = None) -> str:
@@ -201,9 +203,9 @@ def article_page(title: str, body_html: str, source_display: str, updated_at: st
 </head>
 <body>
   <div class="article">
-    <div class="topbar"><div class="brand"><a href="../../index.html">NotebookLM Sources</a></div></div>
+    <div class="topbar"><div class="brand"><a href="../../index.html">{SITE_NAME}</a></div></div>
     <div class="article-wrap">
-      <div class="kicker">Published for NotebookLM · GitHub Pages</div>
+      <div class="kicker">Versioned article · GitHub Pages</div>
       <div class="note">Updated {html.escape(updated_at)}</div>
       <div class="source-pill">Source: {source_display}</div>
       <hr>
@@ -228,7 +230,7 @@ def image_page(title: str, image_name: str, source_display: str, updated_at: str
 </head>
 <body>
   <div class="article">
-    <div class="topbar"><div class="brand"><a href="../../index.html">NotebookLM Sources</a></div></div>
+    <div class="topbar"><div class="brand"><a href="../../index.html">{SITE_NAME}</a></div></div>
     <div class="article-wrap viewer">
       <div class="kicker">Image artifact · GitHub Pages</div>
       <h1>{safe_title}</h1>
@@ -264,15 +266,15 @@ def index_page(entries: List[Dict[str, str]]) -> str:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NotebookLM Sources</title>
+  <title>{SITE_NAME}</title>
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
   <div class="shell">
-    <div class="topbar"><div class="brand">GitHub Pages · NotebookLM Sources</div></div>
+    <div class="topbar"><div class="brand">GitHub Pages · {SITE_NAME}</div></div>
     <section class="hero">
-      <h1>NotebookLM Sources</h1>
-      <p>Clean public pages generated from local Markdown and image artifacts, ready to paste into NotebookLM as web URLs.</p>
+      <h1>{SITE_NAME}</h1>
+      <p>{SITE_TAGLINE}</p>
     </section>
     <section class="grid">{cards_html}</section>
     <div class="footer">Generated from the local publishing workflow.</div>
@@ -292,6 +294,40 @@ def save_manifest(path: Path, entries: List[Dict[str, str]]) -> None:
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
+def unique_copy(src: Path, dest_dir: Path) -> str:
+    ensure_dir(dest_dir)
+    name = src.name
+    dest = dest_dir / name
+    data = src.read_bytes()
+    if dest.exists() and dest.read_bytes() == data:
+        return name
+    if dest.exists() and dest.read_bytes() != data:
+        digest = hashlib.sha1(data).hexdigest()[:8]
+        dest = dest_dir / f'{src.stem}-{digest}{src.suffix}'
+        name = dest.name
+    shutil.copy2(src, dest)
+    return name
+
+
+def archive_bundle(source: Path, related_paths: List[Path], archive_dir: Path, source_display: str, title: str, kind: str, updated_at: str) -> List[str]:
+    originals_dir = archive_dir / 'originals'
+    ensure_dir(originals_dir)
+    archived_names = []
+    archived_names.append(unique_copy(source, originals_dir))
+    for path in related_paths:
+        if path.exists() and path.is_file():
+            archived_names.append(unique_copy(path, originals_dir))
+    meta = {
+        'title': title,
+        'kind': kind,
+        'source': source_display,
+        'updated_at': updated_at,
+        'files': archived_names,
+    }
+    (archive_dir / 'meta.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    return archived_names
+
+
 def git_commit_push(repo: Path, message: str) -> None:
     run(['git', 'add', '.'], cwd=repo)
     status = run(['git', 'status', '--porcelain'], cwd=repo)
@@ -307,6 +343,7 @@ def main() -> None:
     parser.add_argument('--repo', required=True)
     parser.add_argument('--title')
     parser.add_argument('--slug')
+    parser.add_argument('--related', action='append', default=[])
     args = parser.parse_args()
 
     repo = Path(args.repo).expanduser().resolve()
@@ -319,9 +356,11 @@ def main() -> None:
     posts_dir = docs / 'posts'
     assets_css = docs / 'assets' / 'style.css'
     manifest_path = repo / 'site_data' / 'posts.json'
+    sources_root = repo / 'sources'
     ensure_dir(posts_dir)
     ensure_dir(assets_css.parent)
     ensure_dir(manifest_path.parent)
+    ensure_dir(sources_root)
 
     slug = args.slug or derive_slug(source, workspace)
     page_dir = posts_dir / slug
@@ -331,6 +370,7 @@ def main() -> None:
 
     now = dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')
     source_display = str(source.relative_to(workspace)) if source.is_relative_to(workspace) else str(source)
+    related_paths = [Path(p).expanduser().resolve() for p in args.related]
 
     if source.suffix.lower() in MARKDOWN_EXTS:
         raw = read_text(source)
@@ -359,6 +399,9 @@ def main() -> None:
 
     (page_dir / 'index.html').write_text(page_html, encoding='utf-8')
 
+    archive_dir = sources_root / slug
+    archived_files = archive_bundle(source, related_paths, archive_dir, source_display, title, kind, now)
+
     entries = load_manifest(manifest_path)
     url = f'./posts/{slug}/index.html'
     updated_entry = {
@@ -369,6 +412,7 @@ def main() -> None:
         'url': url,
         'excerpt': excerpt,
         'kind': kind,
+        'archived_files': archived_files,
     }
     found = False
     for i, entry in enumerate(entries):

@@ -1,6 +1,6 @@
-# notebooklm-sources
+# article-hub
 
-Public GitHub Pages site for publishing Markdown and image artifacts as clean static pages.
+Public GitHub Pages site for publishing important articles and visual artifacts as clean static pages.
 
 ## What this is for
 
@@ -16,22 +16,24 @@ This repo is managed from the main OpenClaw workspace.
 Use the workspace helper:
 
 ```bash
-/Users/weibao/.openclaw/workspace/scripts/publish-github-pages <path-to-md-or-image>
+/Users/weibao/.openclaw/workspace/scripts/publish-github-pages <path-to-md-html-or-image>
 ```
 
 Examples:
 
 ```bash
 scripts/publish-github-pages translate/aakash-karpathy-prompt-loop-timeline-zh-CN/translation.md
+scripts/publish-github-pages output/html/x-thread-dossier-2037200624450936940.html --related translate/x-thread-dossier-2037200624450936940/delivery.md --related output/ljg-downloads/x-thread-dossier-2037200624450936940.png
 scripts/publish-github-pages output/cards/example.png --title "Example card"
 ```
 
 The publisher will:
 
-1. Convert Markdown into static HTML
-2. Copy local referenced images into the page folder
-3. Update the site index
-4. Commit and push changes to GitHub
+1. Convert Markdown into static HTML, or publish tuned HTML directly
+2. Copy local referenced images into the public page folder
+3. Archive original source files and related artifacts under `sources/<slug>/`
+4. Update the site index
+5. Commit and push changes to GitHub
 
 ## GitHub Pages
 
