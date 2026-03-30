@@ -3,13 +3,14 @@
     "slug": "hermes-openclaw-thread",
     "title": "Hermes 在 OpenClaw 旁边长出了一条新的 research pipeline",
     "source": "output/x-dossier-hermes/hermes-openclaw-thread.html",
-    "updated_at": "2026-03-30 19:49 CST",
+    "updated_at": "2026-03-30 20:01 CST",
     "url": "./posts/hermes-openclaw-thread/index.html",
-    "excerpt": "Hermes 在 OpenClaw 旁边长出了一条新的 research pipeline :root{ bg: f5f7fa; paper: fbfcfe; ink: 1f2937; muted: 5f6b7a; soft: 8a94a3; line: d8e0ea; accent: 3d5a80;} {box sizing:border box} htm…",
+    "excerpt": "Hermes 在 OpenClaw 旁边长出了一条新的 research pipeline :root{ bg: f5f7fa; paper: fbfcfe; ink: 17212e; muted: 475569; soft: 748092; line: d8e0ea; accent: 3d5a80;} {box sizing:border box} htm…",
     "kind": "html",
     "archived_files": [
-      "hermes-openclaw-thread.html",
+      "hermes-openclaw-thread-ee3e35d4.html",
       "delivery.md",
+      "hermes-openclaw-thread-v2.png",
       "hermes-openclaw-thread.png"
     ]
   },
