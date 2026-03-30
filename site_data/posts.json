@@ -1,5 +1,20 @@
 [
   {
+    "slug": "openclaw-mcp-master-research-pack-2026-03-30",
+    "title": "OpenClaw × MCP 总研究包（合并版）",
+    "source": "research/openclaw-mcp/openclaw-mcp-master-research-pack-2026-03-30.md",
+    "updated_at": "2026-03-30 19:34 CST",
+    "url": "./posts/openclaw-mcp-master-research-pack-2026-03-30/index.html",
+    "excerpt": "OpenClaw × MCP 总研究包（合并版） 这份文件合并了第一轮官方/X/文档/GitHub线索整理，以及第二轮 maintainer / founder / 评论区补充材料。 第一部分：官方与 X / docs / release 主线 OpenClaw × MCP 深度调研素材（X / 官方文档 / GitHub） 日期：2026 03 30 主题…",
+    "kind": "markdown",
+    "archived_files": [
+      "openclaw-mcp-master-research-pack-2026-03-30.md",
+      "chatgpt-deep-research-final-bundle-2026-03-30.txt",
+      "openclaw-mcp-x-and-official-research-2026-03-30.md",
+      "openclaw-mcp-second-pass-maintainer-x-comments-2026-03-30.md"
+    ]
+  },
+  {
     "slug": "openclaw-mcp-thread-dossier",
     "title": "OpenClaw 正在变成 MCP server：这条 X 线程真正说清了什么",
     "source": "output/x-dossier-openclaw-mcp/openclaw-mcp-thread.html",

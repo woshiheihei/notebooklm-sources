@@ -1,0 +1,915 @@
+请基于我上传的 Markdown 材料，做一次深入研究。主题是：
+
+# OpenClaw 为什么要把下一版本做成与 MCP 深度耦合的方向？
+
+我最关心的不是“OpenClaw 支持 MCP 了”这种表面信息，而是：
+
+1. **为什么他们要这么设计？**
+   - 为什么创始人会说 OpenClaw 本身也会成为一个 MCP？
+   - 为什么对标的是 Anthropic 的 message channel MCP？
+   - 为什么重点像是 messaging / conversation layer，而不是普通工具暴露？
+
+2. **这背后的设计哲学是什么？**
+   - 是不是在把 brain 和 messaging infra 拆开？
+   - 是不是在追求 composability-first / interoperability-first / protocol-first？
+   - 为什么官方一边强调 lean core、bridge model，一边又不断加强 MCP lifecycle / notifications / approvals？
+
+3. **未来方向是什么？**
+   - OpenClaw 会不会从 agent shell 逐步变成 agent ecosystem 里的 communications substrate / messaging infrastructure？
+   - 这会如何改变它和 Claude Code、Codex、Anthropic message channel MCP、OS harness 的关系？
+
+4. **商业和产品层面的考虑是什么？**
+   - 为什么这种转向可能更有产品价值？
+   - 它的护城河会不会从“agent 本身”转移到“message providers / routing / approvals / gateway reliability / operator control”？
+   - 这是否意味着 OpenClaw 更想占住生态底层的位置，而不是只做一个封闭 agent？
+
+## 请重点做的事
+- 利用我提供的 X / Twitter 官方信息，提取 maintainer / founder 的真实语气和表达重点
+- 用 Deep Research 自己去补充：
+  - OpenClaw 官方 GitHub 仓库
+  - 官方文档
+  - 相关 PR / issue / release notes
+  - 相关官网/博客信息
+- 明确区分：
+  - 官方已经确认的事实
+  - 根据官方信息做出的合理推断
+  - 你对未来路线的预测
+
+## 输出结构
+请按下面结构输出：
+1. 执行摘要
+2. 最核心结论：为什么这不是“多了几个 MCP tools”
+3. 官方材料逐条解读（X / GitHub / docs / release）
+4. 设计哲学分析
+5. 底层架构与系统分层分析
+6. 产品与商业层面分析
+7. 与 Anthropic message channel MCP / Claude Code / Codex / OS harness 的关系
+8. 未来方向判断
+9. 不确定点与待验证点
+10. 最终压缩总结：
+   - 一句话本质
+   - 三条设计原则
+   - 三个最重要的产品/商业判断
+   - 五个必须理解的技术点
+   - 常见误解与纠正
+
+## 输出要求
+- 用中文写
+- 不要只复述资料
+- 要帮我真正理解 OpenClaw 这次关于 MCP 的内部设计哲学、底层原理、未来方向和商业考虑
+
+---
+
+以下是我已经整理好的合并研究资料，请在此基础上继续做 Deep Research：
+
+# OpenClaw × MCP 总研究包（合并版）
+
+这份文件合并了第一轮官方/X/文档/GitHub线索整理，以及第二轮 maintainer / founder / 评论区补充材料。
+
+---
+
+## 第一部分：官方与 X / docs / release 主线
+
+# OpenClaw × MCP 深度调研素材（X / 官方文档 / GitHub）
+
+- 日期：2026-03-30
+- 主题：围绕 OpenClaw 创始人关于“下一版 OpenClaw 也是一个 MCP”的发言，尽可能收集 **官方 X / 官方 GitHub / 官方文档 / 官方 release notes** 中与这次更新相关的线索，并初步解释：
+  - 为什么他们要这么做
+  - 背后的设计哲学是什么
+  - 未来方向可能是什么
+  - 这件事在产品与商业层面的意义是什么
+
+---
+
+## 0. 先说结论
+
+从目前拿到的官方材料看，OpenClaw 围绕 MCP 的更新，不只是“支持一个新协议”，而是在做两件互相关联的事：
+
+1. **让 OpenClaw 能更好地消费外部 MCP 生态**
+   - 也就是 OpenClaw 作为 MCP client / bridge，把外部 MCP servers 接进自己的 agent/tool 系统。
+
+2. **让 OpenClaw 自己变成一个可被外部 agent 消费的 MCP endpoint**
+   - 也就是 OpenClaw 作为 MCP server，把自己已经擅长的 conversation / messaging / route / approval 能力暴露给 Claude Code、Codex 等外部 agent。
+
+这背后的更深层变化是：
+
+> **OpenClaw 正在把“brain”和“messaging infrastructure”拆开。**
+
+它不再要求“所有智能都必须在 OpenClaw 自己内部完成”，而是更像在抢占一个更稳定的位置：
+
+> **agent 生态里的消息底座 / 会话桥 / 协议节点。**
+
+---
+
+## 1. 官方 X 源头：创始人 Peter Steinberger 的帖子
+
+### 源头帖
+- 链接：<https://x.com/steipete/status/2037715163562815817>
+- 时间：2026-03-28 10:15 AM
+- 原文：
+
+> The next version of OpenClaw is also an MCP, you can use it instead of Anthropic's message channel MCP to connect to a much wider range of message providers. (I know, this is awkward)
+
+### 中文整理
+下一版 OpenClaw 本身也会成为一个 MCP。你可以把它当作 Anthropic message channel MCP 的替代层，用来接入更广泛的消息提供商。（“我知道这说法有点 awkward。”）
+
+### 这条话最重要的三个信号
+1. **OpenClaw 自己会变成 MCP endpoint**
+   - 不是“OpenClaw 只是支持一些 MCP 工具”，而是它自己在对外暴露一个 MCP 界面。
+
+2. **它对标的是 message channel MCP，而不是通用 agent runtime**
+   - 这意味着重点不在“所有工具都开放”，而在“消息渠道 / 会话路由 / communication layer”。
+
+3. **它强调“wider range of message providers”**
+   - 也就是 OpenClaw 的独特价值不在抽象协议本身，而在它已经接好了很多 message providers / channel backends。
+
+---
+
+## 2. 创始人在 X 搜索结果里给出的补充说法
+
+我额外搜索了 `from:steipete (OpenClaw MCP OR "message channel MCP" OR Codex OR Claude Code)`，有一条很关键的补充回复：
+
+### 回复 1：MCP + notification extension
+- 链接：<https://x.com/steipete/status/2038470522414239918>
+- 原文：
+
+> it is a normal mcp but also supports the notification extension.
+
+### 中文整理
+它是一个正常的 MCP，但同时也支持 notification extension。
+
+### 这条回复的价值
+这句话说明两件事：
+
+1. **他们不是搞一个奇怪私有协议**
+   - 先是 “normal MCP”——说明默认仍然在 MCP 兼容语义里。
+
+2. **但 OpenClaw 需要补充 notification / push 相关扩展**
+   - 这非常合理，因为 OpenClaw 的核心价值之一是“活的会话”和“新消息到达”，而不只是 request-response 式工具调用。
+   - 这也解释了为什么官方文档里会出现 `events_poll` / `events_wait`，以及为什么创始人提到 notification extension。
+
+这说明 OpenClaw 的 MCP 设计不是把自己做成“静态工具箱”，而是想保留 **消息系统的实时性**。
+
+---
+
+## 3. 官方 X 账号 @openclaw 的相关信号
+
+虽然 @openclaw 账号没直接发“下一版 OpenClaw is an MCP”这句话，但和 MCP 相关的两个方向都在增强：
+
+### 官方账号：2026.3.23 release post
+- 链接：<https://x.com/openclaw/status/2036293335007264807>
+- 文案里有：
+  - `Chrome MCP waits for tabs`
+
+### 官方账号：Chrome DevTools MCP 相关说明
+- 链接：<https://x.com/openclaw/status/2032694261993427260>
+- 文案强调：
+
+> your agent can now see your tabs, cookies, logins — everything uses Chrome DevTools MCP under the hood, no extensions needed
+
+### 这两条的价值
+虽然它们不是“OpenClaw 自己变成 MCP server”的直接公告，但能看出：
+
+- 官方账号已经在把 **MCP 当作一条明确产品路线** 来宣传，而不是边缘实验；
+- 他们在公众沟通里，把 MCP 讲成一种让 agent 和已有环境/会话接起来的方式；
+- 这和创始人关于 OpenClaw 作为 message-channel MCP 替代层的说法，属于同一个大方向：
+  - **让 OpenClaw 成为 agent 与外部世界之间的标准连接层。**
+
+---
+
+## 4. 官方文档：`openclaw mcp serve`
+
+### 文档关键句
+来自 `docs/cli/mcp.md`：
+
+> `openclaw mcp` has two jobs:
+> - run OpenClaw as an MCP server with `openclaw mcp serve`
+> - manage OpenClaw-owned outbound MCP server definitions ...
+
+> `serve` is OpenClaw acting as an MCP server
+
+> Use `openclaw mcp serve` when:
+> - Codex, Claude Code, or another MCP client should talk directly to OpenClaw-backed channel conversations
+> - you already have a local or remote OpenClaw Gateway with routed sessions
+> - you want one MCP server that works across OpenClaw's channel backends instead of running separate per-channel bridges
+
+### 中文解释
+这份文档已经把方向说得很清楚：
+
+- `openclaw mcp serve` 不是随手加的兼容层，而是 **OpenClaw 作为 MCP server 的正式入口**；
+- 典型使用者就是 **Codex、Claude Code 或其他 MCP client**；
+- 它要暴露的不是某个单一渠道，而是 **OpenClaw 背后的 channel-backed conversations**；
+- 它的价值主张是：
+  - 不用为 Slack / Telegram / Discord 各写一套桥
+  - 用一个 MCP server 就能跨 OpenClaw 的多渠道后端工作
+
+### 这意味着什么
+这基本已经明示了产品定位：
+
+> **OpenClaw 想把自己从“一个 agent 产品”下沉成“agent 生态里的多渠道消息基础设施”。**
+
+---
+
+## 5. 官方源码：当前 MCP server 实际暴露的能力
+
+来自 `src/mcp/channel-tools.ts`，OpenClaw MCP bridge 暴露的核心工具包括：
+
+- `conversations_list`
+- `conversation_get`
+- `messages_read`
+- `attachments_fetch`
+- `events_poll`
+- `events_wait`
+- `messages_send`
+- `permissions_list_open`
+- `permissions_respond`
+
+### 这组工具说明了什么
+如果 OpenClaw 的目标只是“做一个普通 MCP 工具服务器”，它完全可以暴露很多散装工具。
+
+但这里暴露出来的其实是一套 **conversation-centric** 能力：
+
+- 先找到会话 `conversations_list`
+- 再看会话 `conversation_get`
+- 读历史 `messages_read`
+- 拉增量 `events_poll` / `events_wait`
+- 沿着同一路由回消息 `messages_send`
+- 处理审批 `permissions_*`
+
+所以 OpenClaw 暴露的不是“工具集合”，而是：
+
+> **一个已经存在的消息系统 / 会话系统 / 路由系统 / 审批系统，在 MCP 中的投影。**
+
+这点非常关键，因为它直接解释了创始人为什么拿 Anthropic 的 message channel MCP 来做类比。
+
+---
+
+## 6. 官方 release notes：2026.3.28 已经把这方向写进版本说明
+
+来自 `v2026.3.28` release notes：
+
+> MCP/channels: add a Gateway-backed channel MCP bridge with Codex/Claude-facing conversation tools, Claude channel notifications, and safer stdio bridge lifecycle handling for reconnects and routed session discovery.
+
+### 中文整理
+在 MCP / channels 方向，这个版本加入了：
+- 一个 **Gateway-backed channel MCP bridge**
+- 面向 **Codex / Claude** 的 conversation tools
+- Claude channel notifications
+- 更安全的 stdio bridge lifecycle handling
+- 更稳的 reconnect / routed session discovery
+
+### 这条 release note 的价值
+这是目前最硬的一条官方证据之一，因为它把方向一口气说全了：
+
+1. **Gateway-backed**
+   - 说明不是一个临时本地工具，而是建立在 OpenClaw Gateway 现有路由能力之上的桥。
+
+2. **Codex/Claude-facing**
+   - 非常明确：这不是只给 OpenClaw 内部用，而是要面向外部 coding agents。
+
+3. **conversation tools**
+   - 再次强调它暴露的是 conversation semantics，不是零散工具函数。
+
+4. **notifications + lifecycle + reconnect**
+   - 这说明官方非常清楚：MCP 真正落地到消息场景时，难点不只是 schema，而是：
+     - 实时通知
+     - 生命周期
+     - 重连
+     - 会话发现
+
+这已经非常接近“产品方向宣言”了。
+
+---
+
+## 7. 官方愿景文件：为什么他们不想把 MCP 粗暴塞进 core
+
+来自 `VISION.md`：
+
+> OpenClaw supports MCP through `mcporter`
+
+> This keeps MCP integration flexible and decoupled from core runtime:
+> - add or change MCP servers without restarting the gateway
+> - keep core tool/context surface lean
+> - reduce MCP churn impact on core stability and security
+
+> For now, we prefer this bridge model over building first-class MCP runtime into core.
+
+### 中文解释
+这说明 OpenClaw 团队对 MCP 一直有一个很鲜明的态度：
+
+- 他们**欢迎 MCP**，但不想让核心 runtime 直接被 MCP 拖着走；
+- 他们偏好的是 **bridge model / decoupled model**；
+- 他们担心的是：
+  - protocol churn
+  - core stability
+  - security surface
+
+### 这和本次更新怎么连起来
+所以这次“OpenClaw 自己也变成 MCP”并不意味着团队放弃了这个理念；反而更像是：
+
+> 他们终于找到了一个更合理的边界：
+> - 核心 runtime 继续保持自己的完整性
+> - 但对外，OpenClaw 可以以 MCP 形式稳定暴露自己最强的一层：消息与会话基础设施
+
+也就是：
+- **内核不被协议绑死**
+- **外部接口尽量利用生态标准**
+
+这是一种很典型的“protocol leverage without core capture”的设计。
+
+---
+
+## 8. 为什么他们要这么做：设计、产品、商业三层解释
+
+### A. 设计层：把 brain 和 messaging infra 拆开
+这是最核心的设计动机。
+
+过去更像：
+- OpenClaw 既是 brain，又是消息层
+
+现在更像：
+- Claude Code / Codex / 别的 agent 可以当 brain
+- OpenClaw 当 messaging / routing / conversation / approval layer
+
+这意味着什么？
+
+- OpenClaw 不需要在“谁的大脑最好”上永远竞争
+- 它可以占据一个更稳、更底层的位置
+- 它可以让更多上层 agent 接进来，而不是要求都住在它内部
+
+### B. 产品层：从单体 agent 产品，变成生态基础设施
+如果你把 release notes、文档、源码合起来看，OpenClaw 在做的其实是：
+
+- 让外部 agent 能直接读写 OpenClaw 路由出来的多渠道对话
+- 让 conversation / event / approval 这些东西进入标准协议层
+- 让 OpenClaw 的多渠道后端，被更多上层 agent 直接消费
+
+这就会把产品定位从：
+- 一个“会发消息的 agent”
+
+往：
+- 一个“给任何 agent 提供消息能力的 infra”
+
+迁移。
+
+### C. 商业层：真正难复制的是消息基础设施，不是模型
+这一点虽然官方没在文档里直接说死，但从产品路径上很明显。
+
+更稳的商业价值来自：
+- 多平台接入
+- 渠道路由
+- OAuth / token 管理
+- bot pools
+- rate limits
+- 会话和身份映射
+- operator approvals
+- 网关与连接稳定性
+
+而不是“我内置的那个 agent 壳是不是最聪明”。
+
+换句话说：
+
+> 模型层可能快速商品化，但消息与会话基础设施不会那么快商品化。
+
+这也解释了为什么他们会愿意把上层 brain 让出来，转而占更底层、更稳定的位置。
+
+---
+
+## 9. 未来方向：从官方线索推出来的可能路线
+
+### 方向 1：OpenClaw 成为面向外部 agents 的统一消息层
+从 `Codex/Claude-facing conversation tools` 这个官方措辞看，这几乎已经是明牌：
+
+- 外部 coding agents 是目标客户/目标使用者
+- OpenClaw 负责把这些 agents 接到真实世界渠道上
+
+### 方向 2：会越来越重视 notification / event / live session
+创始人提到：
+- normal MCP + notification extension
+
+源码和文档里又有：
+- `events_poll`
+- `events_wait`
+- Claude channel notifications
+
+这说明未来 OpenClaw 的 MCP 不会停留在“同步工具调用”，而会更像：
+- evented runtime bridge
+- conversation stream bridge
+- live route bridge
+
+### 方向 3：stateful lifecycle 会持续增强
+相关 PR 已经显示：
+- persistent MCP server lifecycle
+- session-level runtime cache
+- reconnect / routed session discovery
+
+也就是说，未来这条线很可能继续补：
+- session continuity
+- long-lived MCP processes
+- multi-turn state preservation
+- crash recovery
+
+### 方向 4：控制面 / 安全面会同步加强
+这点从 tool approval PR 和 release notes 已经很明显：
+- approvals
+- policy gating
+- operator control
+- safer lifecycle
+
+所以未来 OpenClaw 的 MCP 路线，大概率不是“越开放越好”，而是：
+
+> **越开放，越要把控制面做厚。**
+
+---
+
+## 10. 评论区里最有价值的几条回复
+
+### 10.1 ImL1s：Interoperability > lock-in
+原文：
+
+> The "I know, this is awkward" is doing a lot of heavy lifting here. But this is actually the right move — MCP as a standard means the ecosystem wins when more providers connect to it, even if it means competing tools reference each other. Interoperability > lock-in.
+
+#### 价值
+这条评论很好地抓到了创始人那句 “awkward” 的含义：
+- 从竞争视角，拿 Anthropic 的 message channel MCP 来类比确实 awkward；
+- 但从生态视角，这是在强调标准优先、互操作优先。
+
+这补充了 OpenClaw 这次更新背后的一个核心哲学：
+
+> **协议标准比封闭锁定更重要。**
+
+### 10.2 创始人补充：normal MCP + notification extension
+原文：
+
+> it is a normal mcp but also supports the notification extension.
+
+#### 价值
+这说明他们不是想偏离 MCP，而是想在 MCP 的基础上保留“消息系统需要实时通知”这一现实。
+
+### 10.3 社区对官方账号的反应：Chrome MCP 相关传播非常强
+从 @openclaw 关于 Chrome DevTools MCP 的传播量看，官方已经验证了一个事实：
+
+- 用户非常理解并欢迎“用 MCP 把已有环境接给 agent”这种叙事
+- 这和 OpenClaw 自己变成 channel MCP bridge 是完全同一路线
+
+---
+
+## 11. 这次设计的哲学，我的当前判断
+
+如果把所有官方线索压缩一下，这次更新最像在追求这几个东西：
+
+### 1. Composability-first
+不是所有东西都必须在 OpenClaw 内部完成。
+别的 agent 可以做 brain，OpenClaw 做消息底座。
+
+### 2. Protocol-first, but not protocol-captured
+积极拥抱 MCP，但不让 core runtime 被协议细节完全绑架。
+
+### 3. Lean core + strong edges
+核心继续保持克制；对外接口则尽量利用生态标准，把价值层暴露出来。
+
+### 4. Interoperability over lock-in
+宁可 awkward，也要站在标准互联这一边。
+
+### 5. Infra as moat
+更可能的护城河，不在单个模型/agent，而在：
+- message providers
+- routing
+- events
+- approvals
+- gateway reliability
+- operator control
+
+---
+
+## 12. 给 Deep Research 的重点问题
+
+如果要继续用 ChatGPT Deep Research 往下钻，我建议重点追：
+
+1. OpenClaw 暴露的到底是“工具”，还是“会话系统”？
+2. 为什么 `events_poll` / `events_wait` / notifications 是这条路线的关键，而不是附属功能？
+3. OpenClaw 和 Anthropic message channel MCP 的真正定位差异是什么？
+4. 这是不是 OpenClaw 在把自己从 agent shell 迁移成 communications substrate？
+5. 为什么官方既强调 bridge model、lean core，又同时不断给 MCP 补 lifecycle / cache / approvals？
+6. 这条路线的商业价值是不是来自“任何 agent 都可能需要 message infra”，而不是“只有 OpenClaw agent 会用到它”？
+
+---
+
+## 13. 参考来源清单
+
+### X / 官方账号
+- Peter Steinberger 源头帖：<https://x.com/steipete/status/2037715163562815817>
+- Peter 关于 notification extension 的补充：<https://x.com/steipete/status/2038470522414239918>
+- OpenClaw 2026.3.23 release 帖：<https://x.com/openclaw/status/2036293335007264807>
+- OpenClaw Chrome DevTools MCP 相关帖：<https://x.com/openclaw/status/2032694261993427260>
+
+### 官方文档 / 源码 / release
+- `docs/cli/mcp.md`
+- `src/mcp/channel-tools.ts`
+- `VISION.md`
+- Release `v2026.3.28`
+
+### 相关官方/半官方开发线索
+- PR #29526 — `feat(extensions): add mcp-bridge plugin for native MCP support`
+- PR #54957 — `feat(mcp): persistent MCP server lifecycle support`
+- PR #54958 — `feat(mcp): session-level MCP runtime cache + rollover cleanup`
+- PR #46970 — `feat(security): add MCP tool call approval system`
+- Issue #29053 — native MCP client support
+- Issue #53215 — OpenClaw MCP Server for Claude/Cursor
+
+---
+
+## 14. 一句话总括
+
+**这次 OpenClaw 的 MCP 更新，表面是在“支持 MCP”，更深层是在把 OpenClaw 从一个自己包办思考和发消息的 agent 外壳，重构成 agent 生态里的多渠道消息桥、会话桥和协议节点。**
+
+
+---
+
+## 第二部分：第二轮补充（Maintainer / Founder / Quotes / 评论区）
+
+# OpenClaw × MCP 第二轮补充材料（Maintainer / Founder / X 评论区 / 官方表述）
+
+- 日期：2026-03-30
+- 目标：补充第一轮资料，重点查：
+  1. maintainer / founder 在 GitHub PR / issue 评论里有没有额外说法；
+  2. founder / 官方 X 账号有没有更多相关讨论；
+  3. 源头推文和 quotes / replies 里，高赞、高收藏讨论有哪些真正有价值；
+  4. 有没有更明确谈设计哲学、roadmap、商业意图的官方证据。
+
+---
+
+## 一、先给结论
+
+第二轮补充之后，我的判断更清楚了：
+
+1. **最强的官方一手信号仍然来自 founder 的 X 回复 + 官方 docs / release notes / VISION.md**
+   - GitHub 的相关 PR / issue 讨论区里，我没有找到很多 maintainer / founder 的直接评论；
+   - 但 founder 在 X 上的短回复，和 release notes / docs 之间是高度对齐的。
+
+2. **OpenClaw 的 MCP 方向，核心不是“暴露工具”，而是“暴露消息会话系统”**
+   - 第二轮里最重要的新增证据是 founder 多次强调：
+     - `normal MCP`
+     - `notification extension`
+   - 这意味着它不是要发明私有替代协议，而是在 MCP 语义上补齐消息系统所需的“事件/通知”能力。
+
+3. **roadmap 层面的明确方向已经能看出来：面向 Codex / Claude 这类外部 agent，提供 Gateway-backed conversation bridge**
+   - 这在官方 release notes 里写得非常直白。
+
+4. **商业/产品意图可以做较强推断，但“官方直接说 monetization strategy”的证据仍然不多**
+   - 明确的官方表述更偏产品结构与架构边界；
+   - 更具体的商业含义，需要从这些结构性信号里推出来，而不是硬说 maintainer 已经公开讲透。
+
+---
+
+## 二、GitHub PR / issue 评论里，maintainer / founder 有没有明确说法？
+
+### 结果：很少
+我第二轮专门翻了这些 MCP 相关 PR / issue：
+- #29526 `feat(extensions): add mcp-bridge plugin for native MCP support`
+- #54957 `feat(mcp): persistent MCP server lifecycle support`
+- #54958 `feat(mcp): session-level MCP runtime cache + rollover cleanup`
+- #46970 `feat(security): add MCP tool call approval system`
+- #43792 `feat(mcp): add MCP server with browser transport...`
+- #29053 native MCP client support
+- #53215 OpenClaw MCP Server for Claude/Cursor
+
+### 发现
+- 在这些 PR / issue 的评论区里，**社区反馈很多**，但 **maintainer / founder 直接下场评论并不多**。
+- 我还额外检查了这些 PR 的 review / comments，**没有看到明显的 `steipete` maintainer 评审原话**。
+
+### 这意味着什么
+这不是说“官方没有想法”，而是说明：
+- 这次方向的最清晰官方表达，更多出现在：
+  - founder 的 X 发言
+  - `docs/cli/mcp.md`
+  - `src/mcp/channel-tools.ts`
+  - `VISION.md`
+  - release notes
+- GitHub PR 评论区更像是：
+  - 社区痛点汇总
+  - 具体工程问题
+  - 安全与生命周期的实现讨论
+
+### 但 GitHub 评论区依然有价值
+因为它证明了：
+- 社区确实强烈需要 native MCP support
+- 用户实际被卡在：
+  - config-driven registration
+  - HTTP / streamable transport
+  - tool discovery
+  - per-agent scoping
+  - access control
+  - lifecycle / reconnect
+
+也就是说，**这次更新不是创始人脑子一热的想法，而是有很强的生态拉力。**
+
+---
+
+## 三、Founder 在 X 上新增找到的关键回复
+
+这是第二轮最重要的新增部分。
+
+### 1）“it is a normal mcp but also supports the notification extension.”
+- 链接：<https://x.com/steipete/status/2038470522414239918>
+- 创始人原话：
+
+> it is a normal mcp but also supports the notification extension.
+
+#### 为什么这句话很关键
+这句话把架构边界钉死了：
+
+- **normal MCP**
+  - 说明 OpenClaw 并不是想搞一套“看起来像 MCP、实际上完全私有”的东西；
+  - 它要站在 MCP 生态里，而不是做协议孤岛。
+
+- **notification extension**
+  - 说明单纯 request-response 风格的 MCP，不足以承载 OpenClaw 这类“活的消息系统”；
+  - OpenClaw 要保留的核心能力是：
+    - 新消息到达
+    - 事件驱动
+    - 近实时通知
+    - conversation continuity
+
+#### 这句话直接对应什么官方材料
+它和下面这些内容完全互相印证：
+- `events_poll`
+- `events_wait`
+- Claude channel notifications
+- safer stdio bridge lifecycle
+- routed session discovery
+
+所以这不是零散说法，而是**同一个设计意图在不同地方的重复出现**。
+
+---
+
+### 2）“mcp + notification extension”
+- 链接：<https://x.com/steipete/status/2037744046496432407>
+- 原话：
+
+> mcp + notification extension
+
+#### 价值
+这条虽然更短，但说明 founder 对外描述这件事时，其实已经压缩成一个极简公式：
+
+> **OpenClaw 这次的 channel/MCP 路线 = MCP + notification extension**
+
+也就是说，他心里最核心的区别点不是“我们有很多工具”，而是：
+
+- 标准 MCP 给互操作
+- notification extension 给消息系统的实时性
+
+这说明“消息系统语义”才是重点。
+
+---
+
+### 3）“There’s a notification protocol extension”
+- 链接：<https://x.com/steipete/status/2037725613054673136>
+- 原话：
+
+> There's a notification protocol extension
+
+#### 价值
+这条回复进一步说明：
+- founder 在跟别人解释时，最优先强调的不是 `messages_send` 之类工具名；
+- 而是 **notification protocol extension** 这个结构性点。
+
+这很像是在说：
+
+> “别把这事理解成一个静态 MCP 工具箱；真正重要的是它能承接消息系统的通知语义。”
+
+---
+
+## 四、X 评论区 / quotes 里，高价值讨论补充
+
+第二轮我额外去看了源头帖的 **quotes 页面**，这里其实比原帖评论区更有信息密度，因为很多人会在 quote 里展开自己的结构化理解。
+
+### 1）Michael Chomsky 的 quote：目前最有价值的二次解释
+- 链接：<https://x.com/michael_chomsky/status/2038266680296747079>
+- 数据（当时看到的）：
+  - 1.2K likes
+  - 1,899 bookmarks
+  - 227K views
+
+#### 为什么这条特别重要
+这条已经不是普通转发，而是一个高收藏、高传播的“行业解读”。
+
+它的价值在于把 founder 那句很短的话，翻译成了完整结构：
+- 以前 OpenClaw 程序化接入很痛，胶水代码很多
+- 现在 OpenClaw 直接暴露 MCP conversation tools
+- 以前 OpenClaw 同时扮演 brain + messaging layer
+- 现在可以把 brain 与 messaging layer 拆开
+- 真正难且有价值的是 message infra，而不是模型本身
+
+#### 对你的问题有什么帮助
+这条 quote 对“为什么他们这么做”提供了非常强的外部解释：
+- 让外部 agent 当 brain
+- 让 OpenClaw 专注当 messaging infrastructure
+- 这样产品位置更稳、更通用、更可组合
+
+虽然它不是官方文档，但因为和官方 docs / release / founder replies 高度对齐，所以可以当作**高价值辅助证据**。
+
+---
+
+### 2）Carlos Azaustre 的 quote：把能力边界说得更清楚
+- 链接：<https://x.com/carlosazaustre/status/2038331017707114731>
+- 当时看到的数据：
+  - 198 likes
+  - 133 bookmarks
+
+#### 他的概括
+他把 OpenClaw 这次更新概括为：
+- gateway 暴露成 MCP server
+- 有 9 个 conversation tools
+- Claude Code / Codex / Cursor 等可以直接连 OpenClaw
+- 然后通过它把消息送到 Telegram / Slack 等渠道
+
+#### 价值
+这条的价值在于，它从第三方视角再次确认：
+- OpenClaw 的 MCP 不是“另一个玩具工具集”
+- 它确实是在把 Gateway 层能力标准化给外部 agent 用
+
+这相当于把产品边界说得更像：
+- gateway-as-mcp
+- channel-backend-as-service
+
+---
+
+### 3）Aakash Gupta 的 quote：最接近产品/商业层视角的公开外部判断
+- 链接：<https://x.com/aakashgupta/status/2038504505214669072>
+- 当时看到的数据：
+  - 102 likes
+  - 52 bookmarks
+
+#### 核心说法
+他把 Anthropic Claude Code Channels 和 OpenClaw 做对比：
+- Anthropic 目前 message channels 很少
+- OpenClaw 已经接了很多渠道
+
+#### 为什么它对“商业/产品考虑”有帮助
+这条 quote 虽然不是官方自述，但它抓住了一个很关键的产品现实：
+
+> **如果 OpenClaw 已经在 message providers 覆盖面上远强于 Anthropic 官方 channel MCP，那么把 OpenClaw 暴露为 MCP endpoint，就能把这层“渠道广度”转化成对整个 agent 生态都可用的能力。**
+
+这其实就是一个非常像平台化/基础设施化的产品逻辑。
+
+换句话说，它让 OpenClaw 不只是“自己能发消息”，而是变成：
+- 任何支持 MCP 的 agent，都能借 OpenClaw 的多渠道能力出海。
+
+这已经很接近商业意图层面的证据了，尽管不是 founder 亲口说的。
+
+---
+
+### 4）原帖高价值回复：ImL1s
+原话：
+
+> Interoperability > lock-in.
+
+#### 价值
+这句依然值得保留，因为它非常简洁地概括了 founder 那句 “awkward” 的哲学含义：
+
+- 是的，拿 Anthropic 的 message channel MCP 来比较，表面上 awkward；
+- 但这正说明 OpenClaw 在选择：
+  - 与生态对齐
+  - 站在标准这一边
+  - 而不是做封闭私有体系
+
+这和 `VISION.md` 里的 bridge model/lean core 其实是同方向的：
+- 不把自己绑死在私有协议里
+- 让自己成为一个更通用的接口层
+
+---
+
+## 五、这次更新背后的“设计哲学”证据，第二轮更明确了什么？
+
+### 1. 不是“支持 MCP”，而是“用 MCP 承载会话系统”
+第二轮最关键的新增证据，就是 founder 反复提 **notification extension**。
+
+这意味着：
+- 他们不是在做纯函数式工具暴露；
+- 他们是在想：
+  - 如何把 conversation / event / live routing 这些东西带进 MCP 世界。
+
+### 2. 不是做私有封闭替代，而是做“normal MCP + extra semantics”
+`normal MCP` 这个词很重要。
+
+它说明 OpenClaw 的策略不是：
+- 自己另造一套兼容性很差的协议
+
+而是：
+- 先拥抱 MCP 主干
+- 再补充消息系统真的需要的通知语义
+
+这是一种很典型的：
+- protocol-first
+- standards-aligned
+- but domain-specific extension
+
+### 3. 不是抢所有层，而是抢“消息桥/协议桥”这一层
+结合 docs / release notes / founder replies，看得更清楚了：
+- 他们并不是说 OpenClaw 要吞掉所有 runtime / harness / execution 层；
+- 他们更像是要把自己稳定地卡在：
+  - conversation layer
+  - channel layer
+  - route layer
+  - approval layer
+  - eventing layer
+
+这就解释了为什么它会更像一种 **communications substrate**。
+
+---
+
+## 六、roadmap 方面，第二轮有哪些更明确的证据？
+
+### 最明确的官方措辞仍然是 release note
+> add a Gateway-backed channel MCP bridge with Codex/Claude-facing conversation tools, Claude channel notifications, and safer stdio bridge lifecycle handling for reconnects and routed session discovery.
+
+这句话几乎已经把 roadmap 短版写完了：
+
+1. **Gateway-backed channel MCP bridge**
+   - 说明他们要把 Gateway 变成外部 agent 的接入点
+
+2. **Codex/Claude-facing conversation tools**
+   - 明确外部 agent 是目标使用者
+
+3. **Claude channel notifications**
+   - 明确实时通知是关键路线之一
+
+4. **safer stdio bridge lifecycle handling**
+   - 明确生命周期、重连、稳定性是当前工程重点
+
+5. **routed session discovery**
+   - 明确核心对象是 routed sessions / conversations，而不是孤立工具
+
+### 第二轮的判断
+如果你问“未来方向是什么”，我现在会更明确地说：
+
+> **未来方向不是“让 OpenClaw 变成更大的 agent monolith”，而是“让 OpenClaw 更像 agent 生态里的 conversation/message gateway”。**
+
+---
+
+## 七、商业意图方面，这轮有没有更硬的证据？
+
+### 结论：有更强的结构证据，但仍缺 founder 直接商业宣言
+我没有找到 founder 在官方渠道里直接说：
+- “这是我们的 monetization strategy”
+- “我们要靠这个卖给云服务商”
+
+但第二轮已经能拿到这些**强结构证据**：
+
+1. **官方明确面向外部主流 agent（Codex / Claude）**
+   - 说明这不是内部自嗨功能，而是外部生态接口。
+
+2. **官方强调“much wider range of message providers”**
+   - 说明他们清楚自己的差异化价值在 provider breadth。
+
+3. **社区高价值 quote 也都在围绕“message provider coverage”和“外部 agent 接入”讨论**
+   - 这说明市场对它的理解，也正是平台层能力，而不是小功能。
+
+### 所以我会怎么表述商业判断
+**可以做较强推断，但不要伪装成 founder 明说。**
+
+更稳妥的表达是：
+
+> 基于官方功能边界、面向对象（Codex/Claude-facing）、message provider 覆盖优势，以及 founder 对 notification / conversation bridge 的强调，可以较强推断：OpenClaw 在产品上正在往“多渠道 agent messaging infrastructure”方向推进；这条路线天然比只做单一 agent shell 更具平台化和商业化空间。
+
+---
+
+## 八、这轮应该补进总研究包的几个关键句
+
+### founder 原话（强烈建议保留）
+1. `The next version of OpenClaw is also an MCP...`
+2. `it is a normal mcp but also supports the notification extension.`
+3. `mcp + notification extension`
+4. `There's a notification protocol extension`
+
+### 官方 release note（强烈建议保留）
+> `Gateway-backed channel MCP bridge with Codex/Claude-facing conversation tools, Claude channel notifications...`
+
+### 外部高价值 quote（建议保留）
+1. Michael：解释为什么这会把 OpenClaw 从 brain+messaging 一体，变成 messaging infra
+2. Aakash：强调 OpenClaw 相比 Anthropic 的 message provider breadth
+3. ImL1s：`Interoperability > lock-in`
+
+---
+
+## 九、这轮最值得给 Deep Research 追问的问题
+
+1. founder 为什么不断强调 `notification extension`？
+   - 这是否意味着 OpenClaw 的 MCP 重点其实是 evented conversations，而不是 static tools？
+
+2. OpenClaw 是不是在构建一种“message-channel-native MCP bridge”？
+   - 也就是对 MCP 世界来说，它提供的是 conversation runtime，而不是简单 API wrapper。
+
+3. `Codex/Claude-facing conversation tools` 这个措辞，在产品上意味着什么？
+   - 是不是在把 OpenClaw 从 end-user agent，迁移成 upstream agents 的 infra provider？
+
+4. founder 说 `normal MCP`，但又强调 `notification extension`，这说明他想在哪条边界上保持兼容，在哪条边界上做差异化？
+
+5. 如果 provider breadth 是 OpenClaw 的强项，那么这次更新是不是在把“渠道广度”转化成对整个 agent 生态可出售/可复用的基础设施价值？
+
+---
+
+## 十、一句话总结第二轮
+
+**第二轮最关键的新证据，是 founder 反复把 OpenClaw 这次更新概括成“normal MCP + notification extension”。这基本说明：OpenClaw 想做的不是另一个 MCP 工具箱，而是把自己最强的那层——消息、会话、路由、事件与审批——投影成一个能被外部 agent 消费的 MCP conversation bridge。**
