@@ -1,5 +1,19 @@
 [
   {
+    "slug": "karpathy-x-api-thread-reconstruction-v2",
+    "title": "Karpathy × Chris Park：X API Pay-Per-Use 讨论链",
+    "source": "output/x-thread-dossier-2040838208674734473/output-thread-rebuild-v2.html",
+    "updated_at": "2026-04-06 13:16 CST",
+    "url": "./posts/karpathy-x-api-thread-reconstruction-v2/index.html",
+    "excerpt": "Karpathy × Chris Park：X API Pay Per Use 讨论链 :root{ bg: f5f7fa; paper: fbfcfe; ink: 1f2937; muted: 5f6b7a; soft: 8a94a3; line: d8e0ea; accent: 3d5a80;} {box sizing:border box} html,…",
+    "kind": "html",
+    "archived_files": [
+      "output-thread-rebuild-v2.html",
+      "delivery-thread-rebuild-v2.md",
+      "output-thread-rebuild-v2.png"
+    ]
+  },
+  {
     "slug": "karpathy-x-api-thread-reconstruction",
     "title": "Karpathy × Chris Park：关于 X API Pay-Per-Use 的讨论链",
     "source": "output/x-thread-dossier-2040838208674734473/output-thread-rebuild.html",
